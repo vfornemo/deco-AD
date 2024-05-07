@@ -15,10 +15,10 @@ print(open(__file__).read())
 print("-------------- Log starts here --------------")
 
 # Criteria of decomposition
-e_decomp1 = decodense.DecompCls(part='atoms', mo_basis='pm', prop='energy', verbose=0, pop_method='mulliken')
-dip_decomp1 = decodense.DecompCls(part='atoms', mo_basis='pm', prop='dipole', verbose=0, pop_method='mulliken')
-e_decomp2 = decodense.DecompCls(part='atoms', mo_basis='pm', prop='energy', verbose=0, pop_method='iao')
-dip_decomp2 = decodense.DecompCls(part='atoms', mo_basis='pm', prop='dipole', verbose=0, pop_method='iao')
+e_decomp1 = decodense.DecompCls(part='atoms', mo_basis='fb', prop='energy', verbose=0, pop_method='mulliken')
+dip_decomp1 = decodense.DecompCls(part='atoms', mo_basis='fb', prop='dipole', verbose=0, pop_method='mulliken')
+e_decomp2 = decodense.DecompCls(part='atoms', mo_basis='fb', prop='energy', verbose=0, pop_method='iao')
+dip_decomp2 = decodense.DecompCls(part='atoms', mo_basis='fb', prop='dipole', verbose=0, pop_method='iao')
 # Static external electric field
 E0 = jnp.array([0., 0., 0.])
 
@@ -36,27 +36,22 @@ H 1 1.008000 2 109.47 3 120
 # H 1 1.008000 2 109.47
 # H 1 1.008000 2 109.47 3 120
 
-# mol.basis = '6-311++G**'
-mol.basis = 'aug-pcseg-1'
+mol.basis = '6-311++G**'
+# mol.basis = 'aug-pcseg-1'
 # mol.basis = 'cc-pvdz'
 mol.build(trace_exp=False, trace_ctr_coeff=False)
 
 print('\n###### NH3 ######\n')
 
-print("execute of dip1_mul")
 dip1_mul = dipole1(E0,e_decomp1,mol)
-print(f'JAX {e_decomp1.mo_basis}/{e_decomp1.pop_method} Dipole',jnp.sum(dip1_mul,0))
-
-print("execute of dip1_iao")
 dip1_iao = dipole1(E0,e_decomp2,mol)
+print(f'JAX {e_decomp1.mo_basis}/{e_decomp1.pop_method} Dipole',jnp.sum(dip1_mul,0))
 print(f'JAX {e_decomp2.mo_basis}/{e_decomp2.pop_method} Dipole',jnp.sum(dip1_iao,0))
 
-print("execute of dip2_mul")
-dip2_mul = dipole2(E0,dip_decomp1,mol)
-print(f'Decodense {e_decomp1.mo_basis}/{e_decomp1.pop_method} Dipole',jnp.sum(dip2_mul,0))
 
-print("execute of dip2_iao")
+dip2_mul = dipole2(E0,dip_decomp1,mol)
 dip2_iao = dipole2(E0,dip_decomp2,mol)
+print(f'Decodense {e_decomp1.mo_basis}/{e_decomp1.pop_method} Dipole',jnp.sum(dip2_mul,0))
 print(f'Decodense {e_decomp2.mo_basis}/{e_decomp2.pop_method} Dipole',jnp.sum(dip2_iao,0))
 
 print("jax rev of pol1_mul")

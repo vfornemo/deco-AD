@@ -12,7 +12,7 @@ print(open(__file__).read())
 print("-------------- Log starts here --------------")
 
 # MO_BASIS = ['can', 'pm']
-MO_BASIS = ['can']
+MO_BASIS = ['pm']
 POP_METHOD = ['mulliken', 'iao']
 
 jnp.set_printoptions(threshold=100000)
@@ -31,7 +31,8 @@ H 1 1.008000 2 109.47
 H 1 1.008000 2 109.47 3 120
 '''
 
-mol.basis = 'cc-pvdz'
+# mol.basis = 'cc-pvdz'
+mol.basis = '6-311++G**'
 mol.build()
 # mol.build(trace_exp=False, trace_ctr_coeff=False)
 
@@ -39,6 +40,13 @@ mol.build()
 # mf calc
 mf = scf.RHF(mol)
 mf.conv_tol = 1e-14
+# mf.kernel()
+
+E0 = np.array([.0, .0, .0])
+ao_dip = mol.intor_symmetric('int1e_r', comp=3)
+h1 = mf.get_hcore()
+field = jnp.einsum('x,xij->ij', E0, ao_dip)
+mf.get_hcore = lambda *args, **kwargs: h1 + field
 mf.kernel()
 
 print('\n###### NH3 ######\n')

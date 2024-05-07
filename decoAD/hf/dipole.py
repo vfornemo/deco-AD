@@ -5,6 +5,7 @@ import jax
 from pyscfad.lib import numpy as jnp
 from pyscfad import gto, scf, lo
 import decodense
+from orb.orbitals import loc_orbs
 
 # Core Hamiltonian modified energy
 def dipole1(E, decomp, mol):
@@ -15,11 +16,13 @@ def dipole1(E, decomp, mol):
         mf.kernel()
         # print("Mean Field Energy",mf.e_tot)
         # Localize here
-        # mo_coeff = (mf.mo_coeff[:, mf.mo_occ > 0.],) * 2
-        # mo_occ = (mf.mo_occ[mf.mo_occ > 0.] / 2.,) * 2
+        
+        mo_coeff, mo_occ = loc_orbs(mol, mf, decomp.mo_basis, decomp.pop_method,
+                            decomp.mo_init, decomp.loc_exp, decomp.verbose)
+        
         ad = True
-        # e_part = decodense.main(mol = mol, decomp = decomp, mf = mf, mo_coeff = mo_coeff, mo_occ = mo_occ, AD = ad)
-        e_part = decodense.main(mol = mol, decomp = decomp, mf = mf, AD = ad)
+        e_part = decodense.main(mol = mol, decomp = decomp, mf = mf, mo_coeff = mo_coeff, mo_occ = mo_occ, AD = ad)
+        # e_part = decodense.main(mol = mol, decomp = decomp, mf = mf, AD = ad)
 
         # dimension of the electronic part needs to be considered
         e_tot = e_part[decodense.decomp.CompKeys.el] + e_part[decodense.decomp.CompKeys.struct]
@@ -32,9 +35,11 @@ def dipole1(E, decomp, mol):
         # Localize here
         # mo_coeff = (mf.mo_coeff[:, mf.mo_occ > 0.],) * 2
         # mo_occ = (mf.mo_occ[mf.mo_occ > 0.] / 2.,) * 2
+        mo_coeff, mo_occ = loc_orbs(mol, mf, decomp.mo_basis, decomp.pop_method,
+                    decomp.mo_init, decomp.loc_exp, decomp.verbose)
         ad = True
-        # e_part = decodense.main(mol = mol, decomp = decomp, mf = mf, mo_coeff = mo_coeff, mo_occ = mo_occ, AD = ad)
-        e_part = decodense.main(mol = mol, decomp = decomp, mf = mf, AD = ad)
+        e_part = decodense.main(mol = mol, decomp = decomp, mf = mf, mo_coeff = mo_coeff, mo_occ = mo_occ, AD = ad)
+        # e_part = decodense.main(mol = mol, decomp = decomp, mf = mf, AD = ad)
         nuc_dip = e_part[decodense.decomp.CompKeys.nuc_dip]
         return nuc_dip
     
@@ -62,10 +67,12 @@ def dipole2(E, decomp, mol):
     # Localize here
     # mo_coeff = (mf.mo_coeff[:, mf.mo_occ > 0.],) * 2
     # mo_occ = (mf.mo_occ[mf.mo_occ > 0.] / 2.,) * 2
+    mo_coeff, mo_occ = loc_orbs(mol, mf, decomp.mo_basis, decomp.pop_method,
+                        decomp.mo_init, decomp.loc_exp, decomp.verbose)
     ad = True
     # dip_part = decodense.main(mol, decomp, mf, mo_coeff, mo_occ, ad)
-    # dip_part = decodense.main(mol = mol, decomp = decomp, mf = mf, mo_coeff = mo_coeff, mo_occ = mo_occ, AD = ad)
-    dip_part = decodense.main(mol = mol, decomp = decomp, mf = mf, AD = ad)
+    # dip_part = decodense.main(mol = mol, decomp = decomp, mf = mf, AD = ad)
+    dip_part = decodense.main(mol = mol, decomp = decomp, mf = mf, mo_coeff = mo_coeff, mo_occ = mo_occ, AD = ad)
     dip_tot = dip_part[decodense.decomp.CompKeys.el] + dip_part[decodense.decomp.CompKeys.struct]
     return dip_tot
 
