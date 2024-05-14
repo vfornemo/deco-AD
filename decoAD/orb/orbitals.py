@@ -56,8 +56,10 @@ def loc_orbs(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
                 new_array = mo_coeff_out[i].at[..., spin_mo].set(lo.boys.boys(mol, mo_coeff_init, conv_tol = LOC_CONV))
                 mo_coeff_out = mo_coeff_out[:i] + (new_array,) + mo_coeff_out[i+1:]
                 
+            elif mo_basis == 'can':
+                return mo_coeff_in, mo_occ
                 
-            else:
+            elif mo_basis == 'pm':
                 print("pipek-mezey procedure with given pop_method")
                 # pipek-mezey procedure with given pop_method
                 # loc = lo.PM(mol, mf=mf)
@@ -79,6 +81,9 @@ def loc_orbs(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
                 # new_array = mo_coeff_out[i].at[..., spin_mo].set(lo.pipek.pm(mol, mo_coeff_init, pop_method = pop_method, \
                 #                                                         exponent = loc_exp, conv_tol = LOC_CONV))
                 # mo_coeff_out = mo_coeff_out[:i] + (new_array,) + mo_coeff_out[i+1:]
+            
+            else:
+                raise NotImplementedError("mo_basis {} not implemented".format(mo_basis))
 
             # closed-shell reference
             if rhf:

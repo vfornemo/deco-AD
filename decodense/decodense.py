@@ -50,11 +50,11 @@ def main(mol: gto.Mole, decomp: DecompCls, \
         #                             decomp.mo_basis, decomp.pop_method, decomp.mo_init, decomp.loc_exp, \
         #                             decomp.ndo, decomp.verbose)
                 
-        # print("new mo_coeff", mo_coeff)
+        print("new mo_coeff", mo_coeff)
 
         # compute population weights
-        # weights = assign_rdm1s(mol, mf, mo_coeff, mo_occ, decomp.pop_method, decomp.part, \
-        #                        decomp.ndo, decomp.verbose)
+        weights = assign_rdm1s(mol, mf, mo_coeff, mo_occ, decomp.pop_method, decomp.part, \
+                               decomp.ndo, decomp.verbose)
         
         # print("weights", weights)
         
@@ -68,11 +68,11 @@ def main(mol: gto.Mole, decomp: DecompCls, \
         #            [ 0.25, 0.25, 0.25, 0.25]])
         # weights = (weights,weights)
         
-        w = np.random.rand(mol.natm)
-        w /= w.sum()
-        weights = jnp.asarray([w for i in range(len(mo_occ[0]))])
-        weights = (weights,weights)
-        print("weights", weights)
+        # w = np.random.rand(mol.natm)
+        # w /= w.sum()
+        # weights = jnp.asarray([w for i in range(len(mo_occ[0]))])
+        # weights = (weights,weights)
+        # print("weights", weights)
         
         # compute decomposed results
         decomp.res = prop_tot(mol, mf, mo_coeff, mo_occ, rdm1_eff, \
