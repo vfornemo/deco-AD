@@ -1,4 +1,5 @@
 *.log
 tmp*
 *.csv
-examples/
+examples/*
+*.pyc

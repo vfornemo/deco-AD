@@ -50,13 +50,21 @@ def main(mol: gto.Mole, decomp: DecompCls, \
         #                             decomp.mo_basis, decomp.pop_method, decomp.mo_init, decomp.loc_exp, \
         #                             decomp.ndo, decomp.verbose)
                 
-        print("new mo_coeff", mo_coeff)
+        # print("new mo_coeff", mo_coeff)
 
         # compute population weights
         weights = assign_rdm1s(mol, mf, mo_coeff, mo_occ, decomp.pop_method, decomp.part, \
                                decomp.ndo, decomp.verbose)
+    
+        # if weight < 10e-10, set to zero
+        # weights = jnp.where(weights < 1e-10, 0, weights)
         
-        # print("weights", weights)
+        print("weights", weights)
+        
+        # if coeff < 10e-10, set to zero
+        # mo_coeff0 = jnp.where(mo_coeff[0] < 1e-10, 0, mo_coeff[0])
+        # mo_coeff1 = jnp.where(mo_coeff[1] < 1e-10, 0, mo_coeff[1])
+        # mo_coeff = (mo_coeff0, mo_coeff1)
         
         # weights = jnp.ones((len(mo_occ[0]),mol.natm))
         # weights = weights * 0.25

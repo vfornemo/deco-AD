@@ -13,6 +13,7 @@ __status__ = 'Development'
 from pyscfad.lib import numpy as jnp
 from itertools import starmap
 from pyscfad import gto, scf, df, lo, lib, dft
+from pyscf.dft import libxc
 from pyscf import solvent
 from pyscf.dft import numint
 from pyscf import tools as pyscf_tools
@@ -63,6 +64,7 @@ def prop_tot(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
         # effective atomic charges
         if part in ['atoms', 'eda']:
             charge_atom = -jnp.sum(weights[0] + weights[1], axis=0) + pmol.atom_charges()
+            # print("charge_atom", charge_atom)
         else:
             charge_atom = 0.
 
@@ -343,6 +345,13 @@ def _dip_nuc(mol: gto.Mole, atom_charges: jnp.ndarray, gauge_origin: jnp.ndarray
         coords = mol.atom_coords()
         form_charges = mol.atom_charges()
         act_charges = form_charges - atom_charges
+        # print('act_charges', act_charges)
+        # print('gauge_origin', gauge_origin)
+        # print('form_charges', form_charges)
+        # print('coords', coords)
+        # print('contract form_charges, coords', contract('i,ix->ix', form_charges, coords))
+        # print('contract act_charges, gauge_origin', contract('i,x->ix', act_charges, gauge_origin))
+        
         return contract('i,ix->ix', form_charges, coords) - contract('i,x->ix', act_charges, gauge_origin)
 
 
@@ -430,7 +439,7 @@ def _xc_ao_deriv(xc_func: str) -> Tuple[str, int]:
         """
         this function returns the type of xc functional and the level of ao derivatives needed
         """
-        xc_type = dft.libxc.xc_type(xc_func)
+        xc_type = libxc.xc_type(xc_func)
         if xc_type == 'LDA':
             ao_deriv = 0
         elif xc_type in ['GGA', 'NLC']:

@@ -207,8 +207,11 @@ def assign_rdm1s(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
             # domain
             domain = jnp.arange(spin_mo.size)
             # execute kernel
-            weights[i] = list(map(get_weights, domain)) # type: ignore
-
+            # weights[i] = list(map(get_weights, domain)) # type: ignore
+            
+            ww = pipek.atomic_pops(mol, mo_coeff[i], pop_method)
+            weights[i] = ww.diagonal(axis1=1, axis2=2).transpose()
+            
             # closed-shell reference
             if rhf:
                 weights[i+1] = weights[i]
@@ -237,6 +240,8 @@ def _population_mul(natm: int, ao_labels: jnp.ndarray, ovlp: jnp.ndarray, rdm1: 
         """
         # mulliken population array
         pop = contract('ij,ji->i', rdm1, ovlp)
+        # print("pop", pop)
+        
         # init populations
         populations = jnp.zeros(natm)
 
@@ -244,6 +249,7 @@ def _population_mul(natm: int, ao_labels: jnp.ndarray, ovlp: jnp.ndarray, rdm1: 
         for i, k in enumerate(ao_labels):
             populations = populations.at[k[0]].add(pop[i])
 
+        # print("populations", populations)
         return populations
 
 
