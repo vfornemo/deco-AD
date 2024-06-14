@@ -151,7 +151,8 @@ def prop_tot(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
                         rdm1_orb = make_rdm1(orb, mo_occ[i][j])
                         # weighted contribution to rdm1_atom
                         # rdm1_atom[i] += rdm1_orb * weights[i][m][atom_idx] / jnp.sum(weights[i][m])
-                        rdm1_atom = rdm1_atom.at[i].add(rdm1_orb * weights[i][m][atom_idx] /jnp.sum(weights[i][m]))
+                        rdm1_atom = rdm1_atom.at[i].add(rdm1_orb * weights[i][m][atom_idx])
+                        # rdm1_atom = rdm1_atom.at[i].add(rdm1_orb * weights[i][m][atom_idx] / jnp.sum(weights[i][m]))
                     # coulumb & exchange energy associated with given atom
                     if prop_type == 'energy':
                         res[CompKeys.coul] += _trace(jnp.sum(vj, axis=0), rdm1_atom[i], scaling = .5)

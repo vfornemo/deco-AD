@@ -56,30 +56,6 @@ def main(mol: gto.Mole, decomp: DecompCls, \
         weights = assign_rdm1s(mol, mf, mo_coeff, mo_occ, decomp.pop_method, decomp.part, \
                                decomp.ndo, decomp.verbose)
     
-        # if weight < 10e-10, set to zero
-        # weights = jnp.where(weights < 1e-10, 0, weights)
-        
-        print("weights", weights)
-        
-        # if coeff < 10e-10, set to zero
-        # mo_coeff0 = jnp.where(mo_coeff[0] < 1e-10, 0, mo_coeff[0])
-        # mo_coeff1 = jnp.where(mo_coeff[1] < 1e-10, 0, mo_coeff[1])
-        # mo_coeff = (mo_coeff0, mo_coeff1)
-        
-        # weights = jnp.ones((len(mo_occ[0]),mol.natm))
-        # weights = weights * 0.25
-        
-        # weights = jnp.asarray([[ 0.25, 0.25, 0.25, 0.25],
-        #            [ 0.25, 0.25, 0.25, 0.25],
-        #            [ 0.25, 0.25, 0.25, 0.25],
-        #            [ 0.25, 0.25, 0.25, 0.25],
-        #            [ 0.25, 0.25, 0.25, 0.25]])
-        # weights = (weights,weights)
-        
-        # w = np.random.rand(mol.natm)
-        # w /= w.sum()
-        # weights = jnp.asarray([w for i in range(len(mo_occ[0]))])
-        # weights = (weights,weights)
         # print("weights", weights)
         
         # compute decomposed results

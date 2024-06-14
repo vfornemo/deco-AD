@@ -3,8 +3,10 @@ from pyscfad.lo import pipek, iao, orth, boys
 from pyscfad.lib import numpy as jnp
 from typing import Dict, Tuple, List, Union, Optional, Any
 import numpy as np
+from pyscfad.lib import stop_grad
+from functools import reduce
 
-LOC_CONV = 1.e-14
+LOC_TOL = 1.e-10
 
 
 def loc_orbs(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
@@ -50,10 +52,10 @@ def loc_orbs(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
             if mo_basis == 'fb':
                 # foster-boys MOs
                 # loc = lo.Boys(mol)
-                # loc.conv_tol = LOC_CONV
+                # loc.conv_tol = LOC_TOL
                 # if 0 < verbose: loc.verbose = 4
                 # mo_coeff_out[i][:, spin_mo] = loc.kernel(mo_coeff_init)
-                new_array = mo_coeff_out[i].at[..., spin_mo].set(lo.boys.boys(mol, mo_coeff_init, conv_tol = LOC_CONV))
+                new_array = mo_coeff_out[i].at[..., spin_mo].set(lo.boys.boys(mol, mo_coeff_init, conv_tol = LOC_TOL))
                 mo_coeff_out = mo_coeff_out[:i] + (new_array,) + mo_coeff_out[i+1:]
                 
             elif mo_basis == 'can':
@@ -61,26 +63,18 @@ def loc_orbs(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
                 
             elif mo_basis == 'pm':
                 print("pipek-mezey procedure with given pop_method")
-                # pipek-mezey procedure with given pop_method
-                # loc = lo.PM(mol, mf=mf)
-                # loc.conv_tol = LOC_CONV
-                # loc.pop_method = pop_method
-                # loc.exponent = loc_exp
-                # if 0 < verbose: loc.verbose = 4
-                # mo_coeff_out[i][:, spin_mo] = loc.kernel(mo_coeff_init)
                                 
                 # loc = pipek.pm(mol, mo_coeff_init, init_guess = mo_coeff_init, \
-                #                pop_method = pop_method, exponent = loc_exp, conv_tol = LOC_CONV)
+                #                pop_method = pop_method, exponent = loc_exp, conv_tol = LOC_TOL)
                 
-                loc = pipek.pm(mol, mo_coeff_init, pop_method = pop_method, exponent = loc_exp, conv_tol = LOC_CONV)
+                orbocc = pm_jacobi_sweep(mol, mf.mo_coeff, mf.mo_occ, mf.get_ovlp(), pop_method)
+                loc = pipek.pm(mol, orbocc,
+                            pop_method = pop_method, conv_tol = LOC_TOL)
                 
+                # loc = pipek.pm(mol, mo_coeff_init, pop_method = pop_method, exponent = loc_exp, conv_tol = LOC_TOL)
                 
                 new_array = mo_coeff_out[i].at[..., spin_mo].set(loc)
                 mo_coeff_out = mo_coeff_out[:i] + (new_array,) + mo_coeff_out[i+1:]
-                                
-                # new_array = mo_coeff_out[i].at[..., spin_mo].set(lo.pipek.pm(mol, mo_coeff_init, pop_method = pop_method, \
-                #                                                         exponent = loc_exp, conv_tol = LOC_CONV))
-                # mo_coeff_out = mo_coeff_out[:i] + (new_array,) + mo_coeff_out[i+1:]
             
             else:
                 raise NotImplementedError("mo_basis {} not implemented".format(mo_basis))
@@ -123,3 +117,16 @@ def mf_info(mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT]) -> Tuple[Tuple[jnp.ndarr
         mo_coeff = (mf.mo_coeff[0][:, alpha], mf.mo_coeff[1][:, beta])
         
     return jnp.asarray(mo_coeff), mo_occ
+
+
+def pm_jacobi_sweep(mol, mo_coeff, mo_occ, s1e, pop_method, conv_tol=LOC_TOL):
+    orbocc = np.asarray(stop_grad(mo_coeff[:, mo_occ>0]))
+    mlo = pipek.PM(stop_grad(mol), orbocc)
+    mlo.pop_method = pop_method
+    mlo.conv_tol = conv_tol
+    _ = mlo.kernel()
+    mlo = pipek.jacobi_sweep(mlo)
+    orbloc = mlo.mo_coeff
+    u0 = reduce(np.dot, (orbocc.T, stop_grad(s1e), orbloc))
+    return jnp.dot(mo_coeff[:, mo_occ>0], u0)
+

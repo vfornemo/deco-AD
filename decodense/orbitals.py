@@ -10,6 +10,7 @@ __maintainer__ = 'Janus Juul Eriksen'
 __email__ = 'janus@kemi.dtu.dk'
 __status__ = 'Development'
 
+import numpy
 from pyscfad.lib import numpy as jnp
 from pyscfad import gto, scf, dft, lo, lib
 from pyscfad.lo import pipek, iao, orth, boys
@@ -205,19 +206,19 @@ def assign_rdm1s(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
             mocc = mo_occ[i][spin_mo]
 
             # domain
-            domain = jnp.arange(spin_mo.size)
+            # domain = jnp.arange(spin_mo.size)
             # execute kernel
             # weights[i] = list(map(get_weights, domain)) # type: ignore
             
-            ww = pipek.atomic_pops(mol, mo_coeff[i], pop_method)
-            weights[i] = ww.diagonal(axis1=1, axis2=2).transpose()
+            pops = pipek.atomic_pops(mol, mo_coeff[i], method = pop_method)
+            weights[i] = pops.diagonal(axis1=1, axis2=2).transpose()
             
             # closed-shell reference
             if rhf:
                 weights[i+1] = weights[i]
                 break
 
-        weights = jnp.array(weights)              # Could be wrong #
+        weights = jnp.array(weights)
 
         # verbose print
         if 0 < verbose:
@@ -265,3 +266,4 @@ def _population_becke(natm: int, charge_matrix: jnp.ndarray, orb: jnp.ndarray) -
             populations[i] = contract('ki,kl,lj->ij', orb, charge_matrix[i], orb)
 
         return populations
+    
