@@ -52,9 +52,12 @@ def prop_tot(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
     # compute total 1-RDMs (AO basis)
     if rdm1_eff is None:
         rdm1_eff = jnp.array([make_rdm1(mo_coeff[0], mo_occ[0]), make_rdm1(mo_coeff[1], mo_occ[1])])
+        # rdm1_eff = jnp.array(jnp.outer(mo_occ[0] * mo_coeff[0], mo_coeff[0]), jnp.outer(mo_occ[1] * mo_coeff[1], mo_coeff[1]))
     if rdm1_eff.ndim == 2:
         rdm1_eff = jnp.array([rdm1_eff, rdm1_eff]) * .5
+    
     rdm1_tot = jnp.array([make_rdm1(mo_coeff[0], mo_occ[0]), make_rdm1(mo_coeff[1], mo_occ[1])])
+    # rdm1_tot = jnp.array(jnp.outer(mo_occ[0] * mo_coeff[0], mo_coeff[0]), jnp.outer(mo_occ[1] * mo_coeff[1], mo_coeff[1]))
 
     # mol object projected into minao basis
     if pop_method == 'iao':
@@ -168,15 +171,26 @@ def prop_tot(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
 
             # coulumb & exchange energy associated with given atom
             if prop_type == 'energy':
-                res[CompKeys.coul] += _trace(jnp.sum(vj, axis=0), rdm1_atom[i], scaling = .5)
-                res[CompKeys.exch] -= _trace(vk[i], rdm1_atom[i], scaling = .5)
+                # res[CompKeys.coul] += _trace(jnp.sum(vj, axis=0), rdm1_atom[i], scaling = .5)
+                res[CompKeys.coul] += jnp.einsum('ij,ij', jnp.sum(vj, axis=0), rdm1_atom[i]) * 0.5
+                
+                # res[CompKeys.exch] -= _trace(vk[i], rdm1_atom[i], scaling = .5)
+                res[CompKeys.exch] -= jnp.einsum('ij,ij', vk[i], rdm1_atom[i]) * 0.5
+                
         # common energy contributions associated with given atom
         if prop_type == 'energy':
-            res[CompKeys.kin] = _trace(kin, jnp.sum(rdm1_atom, axis=0))
-            res[CompKeys.nuc_att_glob] = _trace(sub_nuc[atom_idx], jnp.sum(rdm1_tot, axis=0), scaling = .5)
-            res[CompKeys.nuc_att_loc] = _trace(nuc, jnp.sum(rdm1_atom, axis=0), scaling = .5)
+            
+            # res[CompKeys.kin] = _trace(kin, jnp.sum(rdm1_atom, axis=0))
+            res[CompKeys.kin] = jnp.einsum('ij,ij', kin, jnp.sum(rdm1_atom, axis=0))
+            
+            # res[CompKeys.nuc_att_glob] = _trace(sub_nuc[atom_idx], jnp.sum(rdm1_tot, axis=0), scaling = .5)
+            res[CompKeys.nuc_att_glob] = jnp.einsum('ij,ij', sub_nuc[atom_idx], jnp.sum(rdm1_tot, axis=0))*0.5
+                        
+            # res[CompKeys.nuc_att_loc] = _trace(nuc, jnp.sum(rdm1_atom, axis=0), scaling = .5)
+            res[CompKeys.nuc_att_loc] = jnp.einsum('ij,ij', nuc, jnp.sum(rdm1_atom, axis=0))*0.5
             if mm_pot is not None:
-                res[CompKeys.solvent] = _trace(mm_pot, jnp.sum(rdm1_atom, axis=0))
+                # res[CompKeys.solvent] = _trace(mm_pot, jnp.sum(rdm1_atom, axis=0))
+                res[CompKeys.solvent] = jnp.einsum('ij,ij', mm_pot, jnp.sum(rdm1_atom, axis=0))
             if e_solvent is not None:
                 res[CompKeys.solvent] = e_solvent[atom_idx]
             # additional xc energy contribution
@@ -189,12 +203,12 @@ def prop_tot(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
                 if eps_xc_nlc is not None:
                     _, _, rho_atom_vv10 = _make_rho(ao_value_nlc, jnp.sum(rdm1_atom, axis=0), 'GGA')
                     res[CompKeys.xc] += _e_xc(eps_xc_nlc, grid_weights_nlc, rho_atom_vv10)
-            res[CompKeys.ext] =  _trace(ext,jnp.sum(rdm1_atom, axis=0))
+            # res[CompKeys.ext] =  _trace(ext,jnp.sum(rdm1_atom, axis=0))
+            res[CompKeys.ext] = jnp.einsum('ij,ij', ext, jnp.sum(rdm1_atom, axis=0))
+            
         elif prop_type == 'dipole':
             # res[CompKeys.el] = -_trace(ao_dip, jnp.sum(rdm1_atom, axis=0))
-            # print('res[CompKeys.el]', res[CompKeys.el])
-            elec = -jnp.einsum('xij,ij->x', ao_dip, jnp.sum(rdm1_atom, axis=0))
-            res[CompKeys.el] = elec
+            res[CompKeys.el] = -jnp.einsum('xij,ij->x', ao_dip, jnp.sum(rdm1_atom, axis=0))
             # print('res[CompKeys.el]', res[CompKeys.el])
             
         # sum up electronic contributions
@@ -292,28 +306,34 @@ def prop_tot(mol: gto.Mole, mf: Union[scf.hf.SCF, dft.rks.KohnShamDFT], \
         domain = jnp.arange(pmol.natm)
         # execute kernel
         
-        if prop_type == 'dipole':
-            if part == 'atoms':
-                res = jax.vmap(prop_atom, (0,1))(domain, weights)
-            else:
-                res = jax.vmap(prop_eda, (0,1))(domain, weights)
+        # if prop_type == 'dipole':
+        #     if part == 'atoms':
+        #         res = jax.vmap(prop_atom, (0,1))(domain, weights)
+        #     else:
+        #         res = jax.vmap(prop_eda, (0,1))(domain, weights)
+        # else:
+        #     res = list(map(prop_atom if part == 'atoms' else prop_eda, domain, weights)) # type: ignore
+            
+        if part == 'atoms':
+            res = jax.vmap(prop_atom, (0,1))(domain, weights)
         else:
-            res = list(map(prop_atom if part == 'atoms' else prop_eda, domain, weights)) # type: ignore
-        
+            res = jax.vmap(prop_eda, (0,1))(domain, weights)
+            
         # init atom-specific energy or dipole arrays
         if prop_type == 'energy':
-            prop = {comp_key: jnp.zeros(pmol.natm, dtype=jnp.float64) for comp_key in res[0].keys()}
+            # prop = {comp_key: jnp.zeros(pmol.natm, dtype=jnp.float64) for comp_key in res[0].keys()}
+            prop = res
             if AD == True:
                 prop[CompKeys.nuc_dip] = _dip_nuc(pmol, charge_atom, gauge_origin)
         elif prop_type == 'dipole':
             # prop = {comp_key: jnp.zeros([pmol.natm, 3], dtype=jnp.float64) for comp_key in res[0].keys()}
             prop = res
         # collect results
-        if prop_type == 'energy':
-            for k, r in enumerate(res):
-                for key, val in r.items():
-                    # prop[key][k] = val
-                    prop[key] = prop[key].at[k].set(val)
+        # if prop_type == 'energy':
+        #     for k, r in enumerate(res):
+        #         for key, val in r.items():
+        #             # prop[key][k] = val
+        #             prop[key] = prop[key].at[k].set(val)
         if ndo:
             prop[CompKeys.struct] = jnp.zeros_like(prop_nuc_rep)
         else:

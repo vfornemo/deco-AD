@@ -17,9 +17,9 @@ from pyscfad import gto, scf, dft
 from typing import Dict, Tuple, List, Union, Optional, Any
 
 from .decomp import DecompCls, sanity_check
-from .orbitals import loc_orbs, assign_rdm1s
+from .orbitals import assign_rdm1s
 from .properties import prop_tot
-from .tools import make_natorb, mf_info, write_rdm1
+from .tools import write_rdm1
 from .results import fmt
 
 
