@@ -26,23 +26,19 @@ E0 = jnp.array([0., 0., 0.])
 # NH3 Molecule
 mol = gto.Mole()
 mol.atom = '''
-N
-H 1 1.008000
-H 1 1.008000 2 109.47
-H 1 1.008000 2 109.47 3 120
+C
+H 1 1.087
+H 1 1.087 2 109.4712206
+H 1 1.087 2 109.4712206 3 120
+H 1 1.087 2 109.4712206 4 120
 '''
-
-# N
-# H 1 1.008000
-# H 1 1.008000 2 109.47
-# H 1 1.008000 2 109.47 3 120
 
 # mol.basis = '6-311++G**'
 mol.basis = 'aug-pcseg-1'
 # mol.basis = 'cc-pvdz'
 mol.build(trace_exp=False, trace_ctr_coeff=False)
 
-print('\n###### NH3 ######\n')
+print('\n###### CH4 ######\n')
 
 
 print("execute of dip2_mul")
@@ -57,22 +53,28 @@ print(f'Decodense {dip_decomp2.mo_basis}/{dip_decomp2.pop_method} Dipole',jnp.su
 print("jax rev of pol2_mul")
 pol2_mul = jax.jacrev(dipole2)(E0,dip_decomp1,mol)
 
+
 print("jax rev of pol2_iao")
 pol2_iao = jax.jacrev(dipole2)(E0,dip_decomp2,mol)
 
 
-pol2_iao_N = jnp.trace(pol2_iao[0])/ 3
+
+pol2_iao_C = jnp.trace(pol2_iao[0])/ 3
 pol2_iao_H1 = jnp.trace(pol2_iao[1])/ 3
 pol2_iao_H2 = jnp.trace(pol2_iao[2])/ 3
 pol2_iao_H3 = jnp.trace(pol2_iao[3])/ 3
-pol2_mul_N = jnp.trace(pol2_mul[0])/ 3
+pol2_iao_H4 = jnp.trace(pol2_iao[4])/ 3
+
+pol2_mul_C = jnp.trace(pol2_mul[0])/ 3
 pol2_mul_H1 = jnp.trace(pol2_mul[1])/ 3
 pol2_mul_H2 = jnp.trace(pol2_mul[2])/ 3
 pol2_mul_H3 = jnp.trace(pol2_mul[3])/ 3
+pol2_mul_H4 = jnp.trace(pol2_mul[4])/ 3
 
 print(f'1st derivative {dip_decomp2.mo_basis}/{dip_decomp2.pop_method} Polarizability\n')
-print('N',pol2_iao_N,'H1',pol2_iao_H1,'H2',pol2_iao_H2,'H3',pol2_iao_H3)
+print('C',pol2_iao_C,'H1',pol2_iao_H1,'H2',pol2_iao_H2,'H3',pol2_iao_H3, 'H4',pol2_iao_H4)
 print(f'\n1st derivative {dip_decomp1.mo_basis}/{dip_decomp1.pop_method} Polarizability\n')
-print('N',pol2_mul_N,'H1',pol2_mul_H1,'H2',pol2_mul_H2,'H3',pol2_mul_H3)
+print('C',pol2_mul_C,'H1',pol2_mul_H1,'H2',pol2_mul_H2,'H3',pol2_mul_H3, 'H4',pol2_mul_H4)
+
 print(f'1st derivative {dip_decomp2.mo_basis}/{dip_decomp2.pop_method} Polarizability',jnp.trace(jnp.sum(pol2_iao,0))/3)
 print(f'1st derivative {dip_decomp1.mo_basis}/{dip_decomp1.pop_method} Polarizability',jnp.trace(jnp.sum(pol2_mul,0))/3)
